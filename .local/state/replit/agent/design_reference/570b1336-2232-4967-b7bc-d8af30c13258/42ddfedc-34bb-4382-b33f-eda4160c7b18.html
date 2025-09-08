@@ -1,0 +1,584 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Calculator - Smart Math Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-soft': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'bounce-gentle': 'bounce 1s ease-in-out 2',
+                    }
+                }
+            }
+        };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563EB">
+    <link rel="apple-touch-icon" href="icon-192x192.png">
+</head>
+<body class="bg-slate-50 font-inter min-h-screen">
+    <!-- @COMPONENT: CalculatorApp [main calculator interface] -->
+    <div class="max-w-md mx-auto bg-white shadow-2xl rounded-3xl overflow-hidden min-h-screen md:min-h-0 md:my-8">
+        
+        <!-- Header Section -->
+        <!-- @COMPONENT: AppHeader [title and settings] -->
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white">
+            <div class="flex items-center justify-between">
+                <h1 class="text-xl font-semibold">Voice Calculator</h1>
+                <button class="p-2 rounded-full hover:bg-blue-500 transition-colors duration-200" aria-label="Settings">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: AppHeader -->
+
+        <!-- Display Section -->
+        <!-- @COMPONENT: CalculatorDisplay [expression and result display] -->
+        <div class="px-6 py-8 bg-slate-800 text-white">
+            <div class="text-right">
+                <!-- Expression Display -->
+                <div class="text-sm text-slate-400 mb-2 min-h-[20px] font-mono" id="expression-display" data-bind="calculator.expression">
+                    <!-- Shows current expression being built -->
+                </div>
+                
+                <!-- Main Result Display -->
+                <div class="text-4xl font-light mb-4 min-h-[48px] font-mono break-all" id="result-display" data-bind="calculator.result" data-mock="true">
+                    0
+                </div>
+
+                <!-- Voice Status Indicator -->
+                <!-- @STATE: isListening:boolean = false -->
+                <div class="flex items-center justify-end space-x-2" id="voice-status">
+                    <div class="w-2 h-2 bg-green-500 rounded-full opacity-0 animate-pulse-soft" id="voice-indicator"></div>
+                    <span class="text-xs text-slate-400" id="voice-text">Ready for voice input</span>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: CalculatorDisplay -->
+
+        <!-- Button Grid -->
+        <!-- @COMPONENT: CalculatorButtons [calculator button grid] -->
+        <div class="p-6">
+            <div class="grid grid-cols-4 gap-3">
+                
+                <!-- Row 1: Clear, +/-, %, Divide -->
+                <button class="calculator-btn bg-slate-200 text-slate-800 hover:bg-slate-300" data-value="clear" data-event="click:handleClear">
+                    C
+                </button>
+                <button class="calculator-btn bg-slate-200 text-slate-800 hover:bg-slate-300" data-value="negate" data-event="click:handleNegate">
+                    +/-
+                </button>
+                <button class="calculator-btn bg-slate-200 text-slate-800 hover:bg-slate-300" data-value="%" data-event="click:handleOperation">
+                    %
+                </button>
+                <button class="calculator-btn bg-blue-500 text-white hover:bg-blue-600" data-value="÷" data-event="click:handleOperation">
+                    ÷
+                </button>
+
+                <!-- Row 2: 7, 8, 9, Multiply -->
+                <button class="calculator-btn bg-white hover:bg-slate-50" data-value="7" data-event="click:handleNumber">
+                    7
+                </button>
+                <button class="calculator-btn bg-white hover:bg-slate-50" data-value="8" data-event="click:handleNumber">
+                    8
+                </button>
+                <button class="calculator-btn bg-white hover:bg-slate-50" data-value="9" data-event="click:handleNumber">
+                    9
+                </button>
+                <button class="calculator-btn bg-blue-500 text-white hover:bg-blue-600" data-value="×" data-event="click:handleOperation">
+                    ×
+                </button>
+
+                <!-- Row 3: 4, 5, 6, Subtract -->
+                <button class="calculator-btn bg-white hover:bg-slate-50" data-value="4" data-event="click:handleNumber">
+                    4
+                </button>
+                <button class="calculator-btn bg-white hover:bg-slate-50" data-value="5" data-event="click:handleNumber">
+                    5
+                </button>
+                <button class="calculator-btn bg-white hover:bg-slate-50" data-value="6" data-event="click:handleNumber">
+                    6
+                </button>
+                <button class="calculator-btn bg-blue-500 text-white hover:bg-blue-600" data-value="-" data-event="click:handleOperation">
+                    -
+                </button>
+
+                <!-- Row 4: 1, 2, 3, Add -->
+                <button class="calculator-btn bg-white hover:bg-slate-50" data-value="1" data-event="click:handleNumber">
+                    1
+                </button>
+                <button class="calculator-btn bg-white hover:bg-slate-50" data-value="2" data-event="click:handleNumber">
+                    2
+                </button>
+                <button class="calculator-btn bg-white hover:bg-slate-50" data-value="3" data-event="click:handleNumber">
+                    3
+                </button>
+                <button class="calculator-btn bg-blue-500 text-white hover:bg-blue-600" data-value="+" data-event="click:handleOperation">
+                    +
+                </button>
+
+                <!-- Row 5: 0 (spans 2), ., Equals -->
+                <button class="calculator-btn bg-white hover:bg-slate-50 col-span-2" data-value="0" data-event="click:handleNumber">
+                    0
+                </button>
+                <button class="calculator-btn bg-white hover:bg-slate-50" data-value="." data-event="click:handleDecimal">
+                    .
+                </button>
+                <button class="calculator-btn bg-emerald-500 text-white hover:bg-emerald-600" data-value="=" data-event="click:handleEquals">
+                    =
+                </button>
+            </div>
+
+            <!-- Voice Input Button -->
+            <!-- @FUNCTIONALITY: Voice input using Web Speech API for mathematical expressions -->
+            <div class="mt-6 flex justify-center">
+                <button class="voice-btn bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-full p-4 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200" id="voice-btn" data-event="click:handleVoiceInput" aria-label="Voice input">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Voice Instructions -->
+            <div class="mt-4 text-center">
+                <p class="text-sm text-slate-600">Tap the microphone and say your calculation</p>
+                <p class="text-xs text-slate-500 mt-1">Try: "What is 25 times 4 plus 10?"</p>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: CalculatorButtons -->
+
+        <!-- Error Modal -->
+        <!-- @COMPONENT: ErrorModal [error message display] -->
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300" id="error-modal">
+            <div class="bg-white rounded-2xl p-6 max-w-sm w-full transform scale-95 transition-transform duration-300">
+                <div class="text-center">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                        <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Calculation Error</h3>
+                    <p class="text-sm text-gray-500 mb-4" id="error-message" data-bind="error.message">
+                        Invalid expression. Please try again.
+                    </p>
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200" data-event="click:closeErrorModal">
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: ErrorModal -->
+    </div>
+    <!-- @END_COMPONENT: CalculatorApp -->
+
+    <style>
+        .calculator-btn {
+            @apply h-14 rounded-2xl font-semibold text-xl shadow-sm border border-gray-200 active:scale-95 transition-all duration-150;
+            min-height: 56px; /* Ensures minimum touch target size */
+        }
+        
+        .voice-btn {
+            animation: pulse 2s infinite;
+        }
+        
+        .voice-btn:hover {
+            animation: none;
+        }
+        
+        .voice-btn.listening {
+            @apply animate-bounce-gentle;
+            background: linear-gradient(45deg, #ef4444, #f97316, #eab308, #22c55e, #3b82f6, #8b5cf6);
+            background-size: 400% 400%;
+            animation: rainbow 1.5s ease infinite;
+        }
+        
+        @keyframes rainbow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        /* PWA Styles */
+        @media (display-mode: standalone) {
+            body {
+                @apply select-none;
+            }
+        }
+        
+        /* Landscape orientation adjustments */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .calculator-btn {
+                @apply h-10 text-lg;
+                min-height: 40px;
+            }
+        }
+    </style>
+
+    <script>
+        (function() {
+            'use strict';
+            
+            // Application State
+            let state = {
+                expression: '',
+                result: '0',
+                isListening: false,
+                lastResult: null,
+                operator: null,
+                operand: null,
+                waitingForOperand: false
+            };
+
+            // DOM Elements
+            const elements = {
+                expressionDisplay: document.getElementById('expression-display'),
+                resultDisplay: document.getElementById('result-display'),
+                voiceBtn: document.getElementById('voice-btn'),
+                voiceStatus: document.getElementById('voice-status'),
+                voiceIndicator: document.getElementById('voice-indicator'),
+                voiceText: document.getElementById('voice-text'),
+                errorModal: document.getElementById('error-modal'),
+                errorMessage: document.getElementById('error-message')
+            };
+
+            // Speech Recognition Setup
+            let recognition = null;
+            let synthesis = window.speechSynthesis;
+
+            if ('webkitSpeechRecognition' in window) {
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+            } else if ('SpeechRecognition' in window) {
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+            }
+
+            // Utility Functions
+            function updateDisplay() {
+                elements.expressionDisplay.textContent = state.expression;
+                elements.resultDisplay.textContent = state.result;
+            }
+
+            function speak(text) {
+                if (synthesis && synthesis.speaking) {
+                    synthesis.cancel();
+                }
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.8;
+                utterance.pitch = 1;
+                utterance.volume = 0.8;
+                
+                if (synthesis) {
+                    synthesis.speak(utterance);
+                }
+            }
+
+            function showError(message) {
+                elements.errorMessage.textContent = message;
+                elements.errorModal.classList.remove('opacity-0', 'pointer-events-none');
+                elements.errorModal.querySelector('div').classList.remove('scale-95');
+                
+                // Auto-hide after 3 seconds
+                setTimeout(() => {
+                    hideError();
+                }, 3000);
+            }
+
+            function hideError() {
+                elements.errorModal.classList.add('opacity-0', 'pointer-events-none');
+                elements.errorModal.querySelector('div').classList.add('scale-95');
+            }
+
+            function calculate(expression) {
+                try {
+                    // Clean and validate expression
+                    let cleanExpression = expression
+                        .replace(/[^0-9+\-*/().^ ]/g, '')
+                        .replace(/\^/g, '**')
+                        .replace(/÷/g, '/')
+                        .replace(/×/g, '*');
+                    
+                    // Prevent dangerous eval by checking for valid mathematical expression
+                    if (!/^[0-9+\-*/.() ]+$/.test(cleanExpression)) {
+                        throw new Error('Invalid characters in expression');
+                    }
+                    
+                    const result = Function('"use strict"; return (' + cleanExpression + ')')();
+                    
+                    if (!isFinite(result)) {
+                        throw new Error('Result is not a finite number');
+                    }
+                    
+                    return parseFloat(result.toFixed(10));
+                } catch (error) {
+                    throw new Error('Invalid mathematical expression');
+                }
+            }
+
+            function processVoiceCommand(command) {
+                // Convert speech to mathematical expression
+                let expression = command.toLowerCase()
+                    .replace(/what is|calculate|compute/g, '')
+                    .replace(/plus|add/g, '+')
+                    .replace(/minus|subtract|less/g, '-')
+                    .replace(/times|multiply|multiplied by/g, '*')
+                    .replace(/divided by|divide|over/g, '/')
+                    .replace(/to the power of|power|raised to/g, '^')
+                    .replace(/point|dot/g, '.')
+                    .replace(/[^0-9+\-*/().^ ]/g, '')
+                    .trim();
+
+                if (!expression) {
+                    throw new Error('Could not understand the mathematical expression');
+                }
+
+                return calculate(expression);
+            }
+
+            // Event Handlers
+            function handleClear() {
+                state.expression = '';
+                state.result = '0';
+                state.operator = null;
+                state.operand = null;
+                state.waitingForOperand = false;
+                updateDisplay();
+                
+                // Haptic feedback simulation
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(50);
+                }
+            }
+
+            function handleNumber(value) {
+                if (state.waitingForOperand) {
+                    state.result = value;
+                    state.waitingForOperand = false;
+                } else {
+                    state.result = state.result === '0' ? value : state.result + value;
+                }
+                
+                state.expression = state.expression + value;
+                updateDisplay();
+            }
+
+            function handleOperation(operator) {
+                const inputValue = parseFloat(state.result);
+
+                if (state.operator && state.waitingForOperand) {
+                    state.operator = operator;
+                    return;
+                }
+
+                if (state.operand === null) {
+                    state.operand = inputValue;
+                } else if (state.operator) {
+                    const currentValue = state.operand || 0;
+                    const newValue = calculate(`${currentValue} ${state.operator} ${inputValue}`);
+
+                    state.result = String(newValue);
+                    state.operand = newValue;
+                }
+
+                state.waitingForOperand = true;
+                state.operator = operator;
+                state.expression = state.expression + ' ' + operator + ' ';
+                updateDisplay();
+            }
+
+            function handleEquals() {
+                const inputValue = parseFloat(state.result);
+
+                if (state.operator && state.operand !== null) {
+                    const newValue = calculate(`${state.operand} ${state.operator} ${inputValue}`);
+                    state.result = String(newValue);
+                    state.operand = null;
+                    state.operator = null;
+                    state.waitingForOperand = true;
+                    state.expression = '';
+                    updateDisplay();
+                    
+                    // Speak result
+                    speak(`The result is ${newValue}`);
+                }
+            }
+
+            function handleDecimal() {
+                if (state.waitingForOperand) {
+                    state.result = '0.';
+                    state.waitingForOperand = false;
+                } else if (state.result.indexOf('.') === -1) {
+                    state.result = state.result + '.';
+                }
+                
+                state.expression = state.expression + '.';
+                updateDisplay();
+            }
+
+            function handleNegate() {
+                const value = parseFloat(state.result);
+                state.result = String(value * -1);
+                updateDisplay();
+            }
+
+            function handleVoiceInput() {
+                if (!recognition) {
+                    showError('Speech recognition is not supported in your browser');
+                    return;
+                }
+
+                if (state.isListening) {
+                    recognition.stop();
+                    return;
+                }
+
+                state.isListening = true;
+                elements.voiceBtn.classList.add('listening');
+                elements.voiceIndicator.classList.remove('opacity-0');
+                elements.voiceText.textContent = 'Listening...';
+
+                speak('Please say your calculation');
+
+                recognition.onresult = function(event) {
+                    const command = event.results[0][0].transcript;
+                    console.log('Voice input:', command);
+                    
+                    try {
+                        const result = processVoiceCommand(command);
+                        state.result = String(result);
+                        state.expression = command;
+                        updateDisplay();
+                        speak(`The result is ${result}`);
+                    } catch (error) {
+                        showError(error.message);
+                        speak('Sorry, I could not calculate that expression');
+                    }
+                };
+
+                recognition.onerror = function(event) {
+                    console.error('Speech recognition error:', event.error);
+                    showError('Could not understand speech. Please try again.');
+                    speak('Sorry, I did not understand. Please try again.');
+                };
+
+                recognition.onend = function() {
+                    state.isListening = false;
+                    elements.voiceBtn.classList.remove('listening');
+                    elements.voiceIndicator.classList.add('opacity-0');
+                    elements.voiceText.textContent = 'Ready for voice input';
+                };
+
+                recognition.start();
+                
+                // Haptic feedback
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(100);
+                }
+            }
+
+            // Event Listeners
+            document.addEventListener('click', function(event) {
+                const target = event.target.closest('button');
+                if (!target) return;
+
+                const value = target.dataset.value;
+                
+                // Add visual feedback
+                target.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    target.style.transform = '';
+                }, 150);
+
+                // Handle different button types
+                if (value === 'clear') {
+                    handleClear();
+                } else if (value === '=') {
+                    handleEquals();
+                } else if (value === '.') {
+                    handleDecimal();
+                } else if (value === 'negate') {
+                    handleNegate();
+                } else if (['+', '-', '×', '÷', '%'].includes(value)) {
+                    handleOperation(value);
+                } else if (!isNaN(value)) {
+                    handleNumber(value);
+                } else if (target.id === 'voice-btn') {
+                    handleVoiceInput();
+                }
+            });
+
+            // Close error modal
+            elements.errorModal.addEventListener('click', function(event) {
+                if (event.target === elements.errorModal || event.target.closest('button')) {
+                    hideError();
+                }
+            });
+
+            // Keyboard support
+            document.addEventListener('keydown', function(event) {
+                const key = event.key;
+                
+                if (!isNaN(key)) {
+                    handleNumber(key);
+                } else if (key === '+') {
+                    handleOperation('+');
+                } else if (key === '-') {
+                    handleOperation('-');
+                } else if (key === '*') {
+                    handleOperation('×');
+                } else if (key === '/') {
+                    event.preventDefault();
+                    handleOperation('÷');
+                } else if (key === '=' || key === 'Enter') {
+                    handleEquals();
+                } else if (key === '.' || key === ',') {
+                    handleDecimal();
+                } else if (key === 'Escape' || key === 'c' || key === 'C') {
+                    handleClear();
+                } else if (key === 'v' || key === 'V') {
+                    handleVoiceInput();
+                }
+            });
+
+            // PWA Installation
+            let deferredPrompt;
+            
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                // TODO: Show install button
+            });
+
+            // Initialize display
+            updateDisplay();
+
+            // Service Worker Registration
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                    // TODO: Register service worker for PWA functionality
+                    console.log('PWA features ready for implementation');
+                });
+            }
+
+        })();
+    </script>
+</body>
+</html>
