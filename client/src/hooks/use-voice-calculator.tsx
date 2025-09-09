@@ -121,6 +121,20 @@ export function useVoiceCalculator() {
     }
   }, []);
 
+  // Helper function to format numbers for voice output (rounded)
+  const formatForVoice = useCallback((num: number): string => {
+    // Round to 4 decimal places for voice output
+    const rounded = parseFloat(num.toFixed(4));
+
+    // If it's a whole number, return as integer
+    if (rounded % 1 === 0) {
+      return rounded.toString();
+    }
+
+    // Remove trailing zeros
+    return rounded.toString().replace(/\.?0+$/, '');
+  }, []);
+
     const processVoiceCommand = useCallback((command: string): number => {
       console.log('Processing voice command:', command);
       
@@ -129,7 +143,7 @@ export function useVoiceCalculator() {
         .replace(/what is|calculate|compute|equals?/g, '')
         .replace(/plus|add|\band\b/g, ' + ')
         .replace(/minus|subtract|less|take away/g, ' - ')
-        .replace(/\bx\b|\btimes\b|\bmultiply\b|\bmultiplied by\b|\bstar\b|\basterisk\b/g, ' x ')
+        .replace(/\bx\b|\btimes\b|\bmultiply\b|\bmultiplied by\b|\bstar\b|\basterisk\b/g, ' *')
         .replace(/divided by|\bdivide\b|\bover\b|\bdivided\b/g, ' / ')
         .replace(/to the power of|power|raised to/g, ' ^ ')
         .replace(/point|dot/g, '.')
@@ -159,7 +173,7 @@ export function useVoiceCalculator() {
       console.log('Converted expression:', expression);
       
       // Remove non-mathematical characters
-      expression = expression.replace(/[^0-9+\-x/().^ ]/g, '');
+      expression = expression.replace(/[^0-9+\-*/().^ ]/g, '');
       
       console.log('Cleaned expression:', expression);
 
@@ -266,8 +280,8 @@ export function useVoiceCalculator() {
           const newValue = calculate(`${prev.operand} ${prev.operator} ${inputValue}`);
           const result = String(newValue);
           
-          // Speak result
-          speak(`The result is ${newValue}`);
+          // Speak result (rounded for voice output)
+          speak(`The result is ${formatForVoice(newValue)}`);
           
           return {
             ...prev,
@@ -288,7 +302,7 @@ export function useVoiceCalculator() {
       
       return prev;
     });
-  }, [calculate, speak]);
+  }, [calculate, speak, formatForVoice]);
 
   const handleDecimal = useCallback(() => {
     setState(prev => {
@@ -319,10 +333,62 @@ export function useVoiceCalculator() {
     setState(prev => {
       const value = parseFloat(prev.result);
       const newResult = String(value * -1);
-      
+
       return {
         ...prev,
         result: newResult,
+        error: null
+      };
+    });
+  }, []);
+
+  const handleBackspace = useCallback(() => {
+    setState(prev => {
+      let newResult: string;
+      let newExpression: string;
+
+      // Remove last character from expression string
+      if (prev.expression.length === 0) {
+        return prev;
+      }
+
+      // Remove last character from expression
+      newExpression = prev.expression.slice(0, -1);
+
+      // Remove trailing spaces
+      newExpression = newExpression.trimEnd();
+
+      // If last character removed was an operator (space before it), remove that too
+      if (newExpression.endsWith('+') || newExpression.endsWith('-') || newExpression.endsWith('*') || newExpression.endsWith('/')) {
+        newExpression = newExpression.slice(0, -1).trimEnd();
+      }
+
+      // Extract last number from newExpression to update result
+      const match = newExpression.match(/(\d+\.?\d*)$/);
+      if (match) {
+        newResult = match[1];
+      } else {
+        newResult = '0';
+      }
+
+      // If result becomes '0', reset all calculator state for clean slate
+      if (newResult === '0') {
+        return {
+          ...prev,
+          result: '0',
+          expression: '',
+          operator: null,
+          operand: null,
+          waitingForOperand: false,
+          error: null
+        };
+      }
+
+      return {
+        ...prev,
+        result: newResult,
+        expression: newExpression,
+        waitingForOperand: false,
         error: null
       };
     });
@@ -378,7 +444,7 @@ export function useVoiceCalculator() {
             .replace(/what is|calculate|compute|equals?/g, '')
             .replace(/plus|add|\band\b/g, ' + ')
             .replace(/minus|subtract|less|take away/g, ' - ')
-            .replace(/\bx\b|\btimes\b|\bmultiply\b|\bmultiplied by\b|\bstar\b|\basterisk\b/g, ' x ')
+            .replace(/\bx\b|\btimes\b|\bmultiply\b|\bmultiplied by\b|\bstar\b|\basterisk\b/g, ' * ')
             .replace(/divided by|\bdivide\b|\bover\b|\bdivided\b/g, ' / ')
             .replace(/to the power of|power|raised to/g, ' ^ ')
             .replace(/point|dot/g, '.')
@@ -404,7 +470,7 @@ export function useVoiceCalculator() {
             .replace(/hundred/g, '100')
             .replace(/\s+/g, ' ')
             .trim()
-            .replace(/[^0-9+\-x/().^ ]/g, '');
+            .replace(/[^0-9+\-*/().^ ]/g, '');
           const result = processVoiceCommand(transcript);
           setState(prev => ({
             ...prev,
@@ -415,7 +481,7 @@ export function useVoiceCalculator() {
             operand: null,
             waitingForOperand: true
           }));
-          speak(`The result is ${result}`);
+          speak(`The result is ${formatForVoice(result)}`);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Calculation error';
           console.log('Processing error:', errorMessage);
@@ -477,7 +543,7 @@ export function useVoiceCalculator() {
     if ('vibrate' in navigator) {
       navigator.vibrate(100);
     }
-  }, [state.isListening, setError, speak, processVoiceCommand]);
+  }, [state.isListening, setError, speak, processVoiceCommand, formatForVoice]);
 
   return {
     state,
@@ -488,6 +554,7 @@ export function useVoiceCalculator() {
       handleEquals,
       handleDecimal,
       handleNegate,
+      handleBackspace,
       handleVoiceInput,
       setError
     }

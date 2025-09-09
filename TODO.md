@@ -1,15 +1,10 @@
-# TODO: Fix Calculator Issues
+# TODO: Fix Multiplication and Division in Voice Calculator
 
 ## Tasks
-- [x] Fix multiplication and division operations in calculate function
-- [x] Modify microphone button to wait for next command instead of auto-restarting
-- [x] Implement continuous microphone listening until "calculations" command
-- [x] Test the fixes
-- [x] Reorder replacements in calculate function: ^ first, then x, then ×, then ÷
-- [x] Update removal regex in calculate to exclude ^
-
-## Details
-- Fix order of replacements in calculate function in use-voice-calculator.tsx
-- Remove setTimeout auto-restart in handleVoiceInput function
-- Modify handleVoiceInput to keep listening continuously until stop command
-- Fix onresult to process only the latest final result
+- [x] Fix handleOperation function in use-voice-calculator.tsx to correctly update expression string
+- [x] Ensure operator symbols are consistent in calculate function
+- [x] Fix voice command processing replacements for multiplication and division
+- [x] Fix keyboard support mapping in calculator.tsx
+- [x] Test multiplication and division via buttons
+- [x] Test multiplication and division via keyboard
+- [x] Test multiplication and division via voice input

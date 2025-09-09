@@ -20,16 +20,18 @@ export default function Calculator() {
       } else if (key === '-') {
         actions.handleOperation('-');
       } else if (key === '*') {
-        actions.handleOperation('×');
+        actions.handleOperation('*');
       } else if (key === '/') {
         event.preventDefault();
-        actions.handleOperation('÷');
+        actions.handleOperation('/');
       } else if (key === '=' || key === 'Enter') {
         actions.handleEquals();
       } else if (key === '.' || key === ',') {
         actions.handleDecimal();
       } else if (key === 'Escape' || key.toLowerCase() === 'c') {
         actions.handleClear();
+      } else if (key === 'Backspace') {
+        actions.handleBackspace();
       } else if (key.toLowerCase() === 'v') {
         actions.handleVoiceInput();
       }
@@ -100,15 +102,15 @@ export default function Calculator() {
             >
               +/-
             </CalculatorButton>
-            <CalculatorButton 
-              onClick={() => actions.handleOperation('%')} 
+            <CalculatorButton
+              onClick={actions.handleBackspace}
               variant="clear"
-              data-testid="button-percent"
+              data-testid="button-backspace"
             >
-              %
+              ⌫
             </CalculatorButton>
-            <CalculatorButton 
-              onClick={() => actions.handleOperation('÷')} 
+            <CalculatorButton
+              onClick={() => actions.handleOperation('/')}
               variant="operator"
               data-testid="button-divide"
             >
@@ -116,26 +118,26 @@ export default function Calculator() {
             </CalculatorButton>
 
             {/* Row 2: 7, 8, 9, Multiply */}
-            <CalculatorButton 
+            <CalculatorButton
               onClick={() => actions.handleNumber('7')}
               data-testid="button-7"
             >
               7
             </CalculatorButton>
-            <CalculatorButton 
+            <CalculatorButton
               onClick={() => actions.handleNumber('8')}
               data-testid="button-8"
             >
               8
             </CalculatorButton>
-            <CalculatorButton 
+            <CalculatorButton
               onClick={() => actions.handleNumber('9')}
               data-testid="button-9"
             >
               9
             </CalculatorButton>
-            <CalculatorButton 
-              onClick={() => actions.handleOperation('×')} 
+            <CalculatorButton
+              onClick={() => actions.handleOperation('*')}
               variant="operator"
               data-testid="button-multiply"
             >
