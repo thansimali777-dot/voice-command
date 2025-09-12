@@ -79,6 +79,73 @@ export function useVoiceCalculator() {
   const recognition = useRef<SpeechRecognition | null>(null);
   const { speak } = useSpeechSynthesis();
 
+  // Number words mapping for parsing spoken numbers
+  const numberWords: { [key: string]: number } = {
+    'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+    'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
+    'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15,
+    'sixteen': 16, 'seventeen': 17, 'eighteen': 18, 'nineteen': 19, 'twenty': 20,
+    'thirty': 30, 'forty': 40, 'fifty': 50, 'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90,
+    'hundred': 100, 'thousand': 1000, 'million': 1000000
+  };
+
+  // Function to convert spoken number words to numeric value
+  const wordsToNumber = useCallback((words: string): number => {
+    const tokens = words.toLowerCase().split(/\s+/);
+    let total = 0;
+    let current = 0;
+    for (const token of tokens) {
+      const value = numberWords[token];
+      if (value !== undefined) {
+        if (value >= 100) {
+          current *= value;
+          if (value >= 1000) {
+            total += current;
+            current = 0;
+          }
+        } else {
+          current += value;
+        }
+      }
+    }
+    return total + current;
+  }, []);
+
+  // Function to parse voice command into mathematical expression
+  const parseVoiceCommand = useCallback((command: string): string => {
+    let words = command.toLowerCase().split(/\s+/);
+    let parsedWords = [];
+    let i = 0;
+    while (i < words.length) {
+      if (numberWords[words[i]]) {
+        let numWords = [];
+        while (i < words.length && numberWords[words[i]]) {
+          numWords.push(words[i]);
+          i++;
+        }
+        const num = wordsToNumber(numWords.join(' '));
+        parsedWords.push(num.toString());
+      } else {
+        parsedWords.push(words[i]);
+        i++;
+      }
+    }
+    let expression = parsedWords.join(' ');
+    // Replace operators
+    expression = expression
+      .replace(/what is|calculate|compute|equals?/g, '')
+      .replace(/plus|add|\band\b/g, ' + ')
+      .replace(/minus|subtract|less|take away/g, ' - ')
+      .replace(/\bx\b|\btimes\b|\bmultiply\b|\bmultiplied by\b|\bstar\b|\basterisk\b/g, ' * ')
+      .replace(/divided by|\bdivide\b|\bover\b|\bdivided\b/g, ' / ')
+      .replace(/to the power of|power|raised to/g, ' ^ ')
+      .replace(/point|dot/g, '.')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/[^0-9+\-*/().^ ]/g, '');
+    return expression;
+  }, [wordsToNumber]);
+
   // Initialize speech recognition
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -124,7 +191,7 @@ export function useVoiceCalculator() {
   // Helper function to format numbers for voice output (rounded)
   const formatForVoice = useCallback((num: number): string => {
     // Round to 4 decimal places for voice output
-    const rounded = parseFloat(num.toFixed(4));
+    const rounded = parseFloat(num.toFixed(3));
 
     // If it's a whole number, return as integer
     if (rounded % 1 === 0) {
@@ -137,52 +204,17 @@ export function useVoiceCalculator() {
 
     const processVoiceCommand = useCallback((command: string): number => {
       console.log('Processing voice command:', command);
-      
-      // Convert speech to mathematical expression
-      let expression = command.toLowerCase()
-        .replace(/what is|calculate|compute|equals?/g, '')
-        .replace(/plus|add|\band\b/g, ' + ')
-        .replace(/minus|subtract|less|take away/g, ' - ')
-        .replace(/\bx\b|\btimes\b|\bmultiply\b|\bmultiplied by\b|\bstar\b|\basterisk\b/g, ' *')
-        .replace(/divided by|\bdivide\b|\bover\b|\bdivided\b/g, ' / ')
-        .replace(/to the power of|power|raised to/g, ' ^ ')
-        .replace(/point|dot/g, '.')
-        .replace(/zero/g, '0')
-        .replace(/one/g, '1')
-        .replace(/two/g, '2')
-        .replace(/three|free/g, '3')
-        .replace(/four|for/g, '4')
-        .replace(/five/g, '5')
-        .replace(/six/g, '6')
-        .replace(/seven/g, '7')
-        .replace(/eight/g, '8')
-        .replace(/nine/g, '9')
-        .replace(/ten/g, '10')
-        .replace(/twenty/g, '20')
-        .replace(/thirty/g, '30')
-        .replace(/forty/g, '40')
-        .replace(/fifty/g, '50')
-        .replace(/sixty/g, '60')
-        .replace(/seventy/g, '70')
-        .replace(/eighty/g, '80')
-        .replace(/ninety/g, '90')
-        .replace(/hundred/g, '100')
-        .replace(/\s+/g, ' ')
-        .trim();
-      
-      console.log('Converted expression:', expression);
-      
-      // Remove non-mathematical characters
-      expression = expression.replace(/[^0-9+\-*/().^ ]/g, '');
-      
-      console.log('Cleaned expression:', expression);
+
+      const expression = parseVoiceCommand(command);
+
+      console.log('Parsed expression:', expression);
 
       if (!expression || expression.length === 0) {
         throw new Error('Could not understand the mathematical expression');
       }
 
       return calculate(expression);
-    }, [calculate]);
+    }, [calculate, parseVoiceCommand]);
 
   const setError = useCallback((error: string | null) => {
     setState(prev => ({ ...prev, error }));
@@ -440,37 +472,7 @@ export function useVoiceCalculator() {
         }
 
         try {
-          const processedExpression = transcript.toLowerCase()
-            .replace(/what is|calculate|compute|equals?/g, '')
-            .replace(/plus|add|\band\b/g, ' + ')
-            .replace(/minus|subtract|less|take away/g, ' - ')
-            .replace(/\bx\b|\btimes\b|\bmultiply\b|\bmultiplied by\b|\bstar\b|\basterisk\b/g, ' * ')
-            .replace(/divided by|\bdivide\b|\bover\b|\bdivided\b/g, ' / ')
-            .replace(/to the power of|power|raised to/g, ' ^ ')
-            .replace(/point|dot/g, '.')
-            .replace(/zero/g, '0')
-            .replace(/one/g, '1')
-            .replace(/two/g, '2')
-            .replace(/three|free/g, '3')
-            .replace(/four|for/g, '4')
-            .replace(/five/g, '5')
-            .replace(/six/g, '6')
-            .replace(/seven/g, '7')
-            .replace(/eight/g, '8')
-            .replace(/nine/g, '9')
-            .replace(/ten/g, '10')
-            .replace(/twenty/g, '20')
-            .replace(/thirty/g, '30')
-            .replace(/forty/g, '40')
-            .replace(/fifty/g, '50')
-            .replace(/sixty/g, '60')
-            .replace(/seventy/g, '70')
-            .replace(/eighty/g, '80')
-            .replace(/ninety/g, '90')
-            .replace(/hundred/g, '100')
-            .replace(/\s+/g, ' ')
-            .trim()
-            .replace(/[^0-9+\-*/().^ ]/g, '');
+          const processedExpression = parseVoiceCommand(transcript);
           const result = processVoiceCommand(transcript);
           setState(prev => ({
             ...prev,
@@ -543,7 +545,7 @@ export function useVoiceCalculator() {
     if ('vibrate' in navigator) {
       navigator.vibrate(100);
     }
-  }, [state.isListening, setError, speak, processVoiceCommand, formatForVoice]);
+  }, [state.isListening, setError, speak, processVoiceCommand, formatForVoice, parseVoiceCommand]);
 
   return {
     state,
