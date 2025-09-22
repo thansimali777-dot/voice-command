@@ -155,7 +155,7 @@ export function useVoiceCalculator() {
         recognition.current = new SpeechRecognition();
         recognition.current.continuous = true; // Continuous listening
         recognition.current.interimResults = false; // Only final results
-        recognition.current.lang = 'en-US';
+        recognition.current.lang = 'en-Us';
         recognition.current.maxAlternatives = 1;
       }
     }
@@ -190,7 +190,7 @@ export function useVoiceCalculator() {
 
   // Helper function to format numbers for voice output (rounded)
   const formatForVoice = useCallback((num: number): string => {
-    // Round to 4 decimal places for voice output
+    // Round to 3 decimal places for voice output
     const rounded = parseFloat(num.toFixed(3));
 
     // If it's a whole number, return as integer
@@ -376,39 +376,27 @@ export function useVoiceCalculator() {
 
   const handleBackspace = useCallback(() => {
     setState(prev => {
-      let newResult: string;
-      let newExpression: string;
-
-      // Remove last character from expression string
       if (prev.expression.length === 0) {
-        return prev;
+        return { ...prev, expression: "", result: "0" };
       }
 
-      // Remove last character from expression
-      newExpression = prev.expression.slice(0, -1);
+      // Remove last character
+      let newExpression = prev.expression.slice(0, -1).trimEnd();
 
-      // Remove trailing spaces
-      newExpression = newExpression.trimEnd();
+      // If we just removed an operator, clear operator state
+      const lastChar = prev.expression.slice(-1);
+      const removedOperator = ['+', '-', '*', '/'].includes(lastChar);
 
-      // If last character removed was an operator (space before it), remove that too
-      if (newExpression.endsWith('+') || newExpression.endsWith('-') || newExpression.endsWith('*') || newExpression.endsWith('/')) {
-        newExpression = newExpression.slice(0, -1).trimEnd();
-      }
-
-      // Extract last number from newExpression to update result
+      // Extract last number from expression (if any)
       const match = newExpression.match(/(\d+\.?\d*)$/);
-      if (match) {
-        newResult = match[1];
-      } else {
-        newResult = '0';
-      }
+      const newResult = match ? match[1] : "0";
 
-      // If result becomes '0', reset all calculator state for clean slate
-      if (newResult === '0') {
+      // If expression is empty → reset everything
+      if (newExpression.length === 0) {
         return {
           ...prev,
-          result: '0',
-          expression: '',
+          result: "0",
+          expression: "",
           operator: null,
           operand: null,
           waitingForOperand: false,
@@ -418,8 +406,10 @@ export function useVoiceCalculator() {
 
       return {
         ...prev,
-        result: newResult,
         expression: newExpression,
+        result: removedOperator ? newResult : newResult,
+        operator: removedOperator ? null : prev.operator,
+        operand: removedOperator ? null : prev.operand,
         waitingForOperand: false,
         error: null
       };

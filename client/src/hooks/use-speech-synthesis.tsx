@@ -22,7 +22,7 @@ export function useSpeechSynthesis() {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.8;
     utterance.pitch = 1;
-    utterance.volume = 0.8;
+    utterance.volume = 1;
 
     synthesis.current.speak(utterance);
   }, []);
